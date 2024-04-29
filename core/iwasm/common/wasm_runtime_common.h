@@ -373,7 +373,7 @@ typedef struct WASMModuleCommon {
 
     /* The following uint8[1] member is a dummy just to indicate
        some module_type dependent members follow.
-       Typically it should be accessed by casting to the corresponding
+       Typically, it should be accessed by casting to the corresponding
        actual module_type dependent structure, not via this member. */
     uint8 module_data[1];
 } WASMModuleCommon;
@@ -389,7 +389,7 @@ typedef struct WASMModuleInstanceCommon {
 
     /* The following uint8[1] member is a dummy just to indicate
        some module_type dependent members follow.
-       Typically it should be accessed by casting to the corresponding
+       Typically, it should be accessed by casting to the corresponding
        actual module_type dependent structure, not via this member. */
     uint8 module_inst_data[1];
 } WASMModuleInstanceCommon;
@@ -1188,6 +1188,13 @@ wasm_runtime_end_blocking_op(WASMExecEnv *exec_env);
 
 void
 wasm_runtime_interrupt_blocking_op(WASMExecEnv *exec_env);
+
+WASM_RUNTIME_API_EXTERN bool
+wasm_runtime_detect_native_stack_overflow(WASMExecEnv *exec_env);
+
+WASM_RUNTIME_API_EXTERN bool
+wasm_runtime_detect_native_stack_overflow_size(WASMExecEnv *exec_env,
+                                               uint32 requested_size);
 
 #if WASM_ENABLE_LINUX_PERF != 0
 bool

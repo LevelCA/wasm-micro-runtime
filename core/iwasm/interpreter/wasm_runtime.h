@@ -103,7 +103,7 @@ struct WASMMemoryInstance {
     /* Whether the memory is shared */
     uint8 is_shared_memory;
 
-    /* TODO: Memory64 whether the memory has 64-bit memory addresses */
+    /* Whether the memory has 64-bit memory addresses */
     uint8 is_memory64;
 
     /* Reference count of the memory instance:
@@ -508,7 +508,7 @@ wasm_load(uint8 *buf, uint32 size,
 #if WASM_ENABLE_MULTI_MODULE != 0
           bool main_module,
 #endif
-          char *error_buf, uint32 error_buf_size);
+          const LoadArgs *args, char *error_buf, uint32 error_buf_size);
 
 WASMModule *
 wasm_load_from_sections(WASMSection *section_list, char *error_buf,
@@ -811,6 +811,11 @@ bool
 llvm_jit_obj_is_instance_of(WASMModuleInstance *module_inst,
                             WASMObjectRef gc_obj, uint32 type_index);
 
+/* Whether func type1 is one of super types of func type2 */
+bool
+llvm_jit_func_type_is_super_of(WASMModuleInstance *module_inst,
+                               uint32 type_idx1, uint32 type_idx2);
+
 WASMRttTypeRef
 llvm_jit_rtt_type_new(WASMModuleInstance *module_inst, uint32 type_index);
 
@@ -835,6 +840,21 @@ exception_unlock(WASMModuleInstance *module_inst);
 #define exception_lock(module_inst) (void)(module_inst)
 #define exception_unlock(module_inst) (void)(module_inst)
 #endif
+
+bool
+wasm_check_utf8_str(const uint8 *str, uint32 len);
+
+char *
+wasm_const_str_list_insert(const uint8 *str, uint32 len, WASMModule *module,
+                           bool is_load_from_file_buf, char *error_buf,
+                           uint32 error_buf_size);
+
+bool
+wasm_set_module_name(WASMModule *module, const char *name, char *error_buf,
+                     uint32_t error_buf_size);
+
+const char *
+wasm_get_module_name(WASMModule *module);
 
 #ifdef __cplusplus
 }

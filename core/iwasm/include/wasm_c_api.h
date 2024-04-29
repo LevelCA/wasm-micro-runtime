@@ -1,5 +1,11 @@
 // WebAssembly C API
 
+/**
+ * @file   wasm_c_api.h
+ *
+ * @brief  This file defines the WebAssembly C APIs
+ */
+
 #ifndef _WASM_C_API_H_
 #define _WASM_C_API_H_
 
@@ -517,9 +523,20 @@ struct WASMModuleCommon;
 typedef struct WASMModuleCommon *wasm_module_t;
 #endif
 
+#ifndef LOAD_ARGS_OPTION_DEFINED
+#define LOAD_ARGS_OPTION_DEFINED
+typedef struct LoadArgs {
+    char *name;
+    /* TODO: more fields? */
+} LoadArgs;
+#endif /* LOAD_ARGS_OPTION_DEFINED */
 
 WASM_API_EXTERN own wasm_module_t* wasm_module_new(
   wasm_store_t*, const wasm_byte_vec_t* binary);
+
+// please refer to wasm_runtime_load_ex(...) in core/iwasm/include/wasm_export.h
+WASM_API_EXTERN own wasm_module_t* wasm_module_new_ex(
+  wasm_store_t*, const wasm_byte_vec_t* binary, const LoadArgs *args);
 
 WASM_API_EXTERN void wasm_module_delete(own wasm_module_t*);
 
@@ -535,6 +552,9 @@ typedef wasm_module_t wasm_shared_module_t;
 WASM_API_EXTERN own wasm_shared_module_t* wasm_module_share(wasm_module_t*);
 WASM_API_EXTERN own wasm_module_t* wasm_module_obtain(wasm_store_t*, wasm_shared_module_t*);
 WASM_API_EXTERN void wasm_shared_module_delete(own wasm_shared_module_t*);
+
+WASM_API_EXTERN bool wasm_module_set_name(wasm_module_t*, const char* name);
+WASM_API_EXTERN const char *wasm_module_get_name(wasm_module_t*);
 
 
 // Function Instances

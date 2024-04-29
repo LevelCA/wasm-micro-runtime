@@ -307,6 +307,9 @@ typedef struct AOTModule {
 #if WASM_ENABLE_LOAD_CUSTOM_SECTION != 0
     WASMCustomSection *custom_section_list;
 #endif
+
+    /* user defined name */
+    char *name;
 } AOTModule;
 
 #define AOTMemoryInstance WASMMemoryInstance
@@ -441,8 +444,8 @@ typedef struct LLVMProfileData_64 {
  * @return return AOT module loaded, NULL if failed
  */
 AOTModule *
-aot_load_from_aot_file(const uint8 *buf, uint32 size, char *error_buf,
-                       uint32 error_buf_size);
+aot_load_from_aot_file(const uint8 *buf, uint32 size, const LoadArgs *args,
+                       char *error_buf, uint32 error_buf_size);
 
 /**
  * Load a AOT module from a specified AOT section list.
@@ -749,6 +752,11 @@ bool
 aot_obj_is_instance_of(AOTModuleInstance *module_inst, WASMObjectRef gc_obj,
                        uint32 type_index);
 
+/* Whether func type1 is one of super types of func type2 */
+bool
+aot_func_type_is_super_of(AOTModuleInstance *module_inst, uint32 type_idx1,
+                          uint32 type_idx2);
+
 WASMRttTypeRef
 aot_rtt_type_new(AOTModuleInstance *module_inst, uint32 type_index);
 
@@ -760,6 +768,20 @@ aot_array_init_with_data(AOTModuleInstance *module_inst, uint32 seg_index,
 bool
 aot_traverse_gc_rootset(WASMExecEnv *exec_env, void *heap);
 #endif /* end of WASM_ENABLE_GC != 0 */
+
+char *
+aot_const_str_set_insert(const uint8 *str, int32 len, AOTModule *module,
+#if (WASM_ENABLE_WORD_ALIGN_READ != 0)
+                         bool is_vram_word_align,
+#endif
+                         char *error_buf, uint32 error_buf_size);
+
+bool
+aot_set_module_name(AOTModule *module, const char *name, char *error_buf,
+                    uint32_t error_buf_size);
+
+const char *
+aot_get_module_name(AOTModule *module);
 
 #ifdef __cplusplus
 } /* end of extern "C" */
