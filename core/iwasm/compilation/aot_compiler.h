@@ -520,8 +520,7 @@ set_local_gc_ref(AOTCompFrame *frame, int n, LLVMValueRef value, uint8 ref_type)
     } while (0)
 
 #if WASM_ENABLE_MEMORY64 != 0
-#define IS_MEMORY64 \
-    (comp_ctx->comp_data->memories[0].memory_flags & MEMORY64_FLAG)
+#define IS_MEMORY64 (comp_ctx->comp_data->memories[0].flags & MEMORY64_FLAG)
 #define MEMORY64_COND_VALUE(VAL_IF_ENABLED, VAL_IF_DISABLED) \
     (IS_MEMORY64 ? VAL_IF_ENABLED : VAL_IF_DISABLED)
 #else
@@ -605,6 +604,14 @@ set_local_gc_ref(AOTCompFrame *frame, int n, LLVMValueRef value, uint8 ref_type)
 #define PUSH_GC_REF(v) PUSH(v, VALUE_TYPE_GC_REF)
 #define PUSH_PAGE_COUNT(v) \
     PUSH(v, MEMORY64_COND_VALUE(VALUE_TYPE_I64, VALUE_TYPE_I32))
+
+#define SET_CONST(v)                                                          \
+    do {                                                                      \
+        AOTValue *aot_value =                                                 \
+            func_ctx->block_stack.block_list_end->value_stack.value_list_end; \
+        aot_value->is_const = true;                                           \
+        aot_value->const_value = (v);                                         \
+    } while (0)
 
 #define TO_LLVM_TYPE(wasm_type) \
     wasm_type_to_llvm_type(comp_ctx, &comp_ctx->basic_types, wasm_type)
@@ -782,14 +789,6 @@ aot_compile_wasm(AOTCompContext *comp_ctx);
 
 bool
 aot_emit_llvm_file(AOTCompContext *comp_ctx, const char *file_name);
-
-bool
-aot_emit_aot_file(AOTCompContext *comp_ctx, AOTCompData *comp_data,
-                  const char *file_name);
-
-uint8 *
-aot_emit_aot_file_buf(AOTCompContext *comp_ctx, AOTCompData *comp_data,
-                      uint32 *p_aot_file_size);
 
 bool
 aot_emit_object_file(AOTCompContext *comp_ctx, char *file_name);

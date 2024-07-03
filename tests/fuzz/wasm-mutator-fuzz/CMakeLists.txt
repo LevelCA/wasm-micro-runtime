@@ -3,20 +3,25 @@
 
 cmake_minimum_required (VERSION 2.8)
 
+if (NOT DEFINED CMAKE_C_COMPILER)
+set (CMAKE_C_COMPILER "clang")
+endif ()
+if (NOT DEFINED CMAKE_CXX_COMPILER)
+set (CMAKE_CXX_COMPILER "clang++")
+endif ()
+
 project(wasm_mutator)
 
 set (CMAKE_BUILD_TYPE Debug)
 
-set (CMAKE_C_COMPILER "clang")
-set (CMAKE_CXX_COMPILER "clang++")
-
-set (WAMR_BUILD_PLATFORM "linux")
+string (TOLOWER ${CMAKE_HOST_SYSTEM_NAME} WAMR_BUILD_PLATFORM)
 
 # Reset default linker flags
 set (CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 set (CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
-set (CMAKE_C_STANDARD 99)
+set (CMAKE_C_STANDARD 11)
+set (CMAKE_CXX_STANDARD 17)
 
 # Set WAMR_BUILD_TARGET, currently values supported:
 # "X86_64", "AMD_64", "X86_32", "AARCH64[sub]", "ARM[sub]", "THUMB[sub]",
@@ -35,6 +40,10 @@ if (NOT DEFINED WAMR_BUILD_TARGET)
   else ()
     message(SEND_ERROR "Unsupported build target platform!")
   endif ()
+endif ()
+
+if (APPLE)
+  add_definitions(-DBH_PLATFORM_DARWIN)
 endif ()
 
 if(CUSTOM_MUTATOR EQUAL 1)
@@ -58,12 +67,12 @@ endif ()
 
 if (NOT DEFINED WAMR_BUILD_LIBC_BUILTIN)
   # Enable libc builtin support by default
-  set (WAMR_BUILD_LIBC_BUILTIN 1)
+  set (WAMR_BUILD_LIBC_BUILTIN 0)
 endif ()
 
 if (NOT DEFINED WAMR_BUILD_LIBC_WASI)
   # Enable libc wasi support by default
-  set (WAMR_BUILD_LIBC_WASI 1)
+  set (WAMR_BUILD_LIBC_WASI 0)
 endif ()
 
 if (NOT DEFINED WAMR_BUILD_FAST_INTERP)
@@ -92,8 +101,8 @@ if (NOT DEFINED WAMR_BUILD_SIMD)
 endif ()
 
 if (NOT DEFINED WAMR_BUILD_REF_TYPES)
-  # Disable reference types by default
-  set (WAMR_BUILD_REF_TYPES 0)
+  # Enable reference type by default
+  set (WAMR_BUILD_REF_TYPES 1)
 endif ()
 
 if (NOT DEFINED WAMR_BUILD_DEBUG_INTERP)
@@ -113,21 +122,35 @@ message([ceith]:REPO_ROOT_DIR, ${REPO_ROOT_DIR})
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-add_definitions(-DWAMR_USE_MEM_POOL=0)
+add_definitions(-DWAMR_USE_MEM_POOL=0 -DWASM_ENABLE_FUZZ_TEST=1)
 
 # Enable fuzzer
 add_compile_options(-fsanitize=fuzzer)
 add_link_options(-fsanitize=fuzzer)
 
 # if not calling from oss-fuzz helper, enable all support sanitizers
-# oss-fuzz always defines `HELPER=True`
-if (NOT "$ENV{HELPER}" STREQUAL "True")
+# oss-fuzz will define FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION in CFLAGS and CXXFLAGS
+set(CFLAGS_ENV $ENV{CFLAGS})
+string(FIND "${CFLAGS_ENV}" "-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION" IN_OSS_FUZZ)
+if (IN_OSS_FUZZ EQUAL -1)
+  message("[ceith]:Enable ASan and UBSan in non-oss-fuzz environment")
   add_compile_options(
-    -fsanitize=signed-integer-overflow
     -fprofile-instr-generate -fcoverage-mapping
+    -fno-sanitize-recover=all
     -fsanitize=address,undefined
+    # reference: https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
+    # -fsanitize=undefined: All of the checks listed above other than float-divide-by-zero,
+    #     unsigned-integer-overflow, implicit-conversion, local-bounds and
+    #     the nullability-* group of checks.
+    #
+    # for now, we disable below from UBSan
+    # -alignment
+    # -implicit-conversion
+    #
+    -fsanitize=float-divide-by-zero,unsigned-integer-overflow,local-bounds,nullability
+    -fno-sanitize=alignment
   )
-  add_link_options(-fsanitize=address)
+  add_link_options(-fsanitize=address -fprofile-instr-generate)
 endif ()
 
 include(${REPO_ROOT_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
